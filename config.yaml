@@ -1,0 +1,45 @@
+# config.yaml
+# Centralized configuration for the IAQ Infection Risk project (V2)
+# Change values here instead of hunting through code.
+
+paths:
+  data_dir: "data"
+  reports_dir: "reports"
+  logs_dir: "logs"
+  sensor_data_file: "sensor_data.csv"
+  labeled_data_file: "labeled_data.csv"
+  alerts_log_file: "alerts_log.csv"
+
+features:
+  - co2_ppm
+  - temperature_c
+  - humidity_pct
+  - occupancy
+
+wells_riley:
+  co2_outdoor_ppm: 420.0
+  co2_exhaled_ppm: 38000.0
+  quanta_rate: 25.0
+  default_exposure_minutes: 60
+
+risk_thresholds:
+  low_max: 0.20
+  medium_max: 0.45
+  # anything >= medium_max is High
+
+alerting:
+  enabled: true
+  trigger_category: "High"
+  cooldown_minutes: 30   # don't re-alert the same room within this window
+
+forecasting:
+  horizon_steps: 4        # predict 4 steps ahead (1 hr, given 15-min intervals)
+  lag_steps: 4             # use last 4 readings as features
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+
+model:
+  test_size: 0.25
+  random_state: 42

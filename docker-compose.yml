@@ -1,0 +1,34 @@
+# docker-compose.yml
+# Runs the API and the Dashboard together as two linked containers.
+# NOTE: models must already be trained (reports/*.joblib present) before
+# building these images, since training is not run inside the container
+# by default -- keeps container startup fast and deterministic.
+#
+# Usage (when you're ready to actually run this, later):
+#   docker-compose up --build
+
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./reports:/app/reports
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard.Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./reports:/app/reports
+      - ./data:/app/data
+    depends_on:
+      - api
