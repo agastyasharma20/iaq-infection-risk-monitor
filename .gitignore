@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Generated data & model artifacts (regenerate locally, don't commit large binaries)
+data/sensor_data.csv
+data/labeled_data.csv
+data/alerts_log.csv
+reports/*.joblib
+logs/
+
+# OS/editor junk
+.DS_Store
+.vscode/
+.idea/
+
+# Streamlit
+.streamlit/secrets.toml

@@ -1,0 +1,13 @@
+pandas
+numpy
+scikit-learn
+scikit-fuzzy
+matplotlib
+streamlit
+joblib
+pyyaml
+shap
+fastapi
+uvicorn[standard]
+pydantic
+pytest
