@@ -2,7 +2,7 @@
 building_health.py -- Building Health Score (V4)
 ------------------------------------------------------
 Aggregates every room's current risk into ONE number and letter grade
-for the whole building -- the kind of single metric an HOD, principal,
+for the whole building -- the kind of single metric an administrator, principal,
 or Smart City dashboard actually wants to see first, before drilling
 into any one room.
 

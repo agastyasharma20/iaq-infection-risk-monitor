@@ -4,7 +4,7 @@ report_generator.py -- Automated PDF Reports (V3)
 Generates a professional, per-room (or whole-building) PDF summary
 covering the logged period: risk trend chart, time spent in each risk
 category, alert count, and the current model comparison table. This is
-the kind of artifact you'd actually hand to your HOD or a facilities
+the kind of artifact you'd actually share with an administrator or facilities
 manager weekly -- not just a dashboard screenshot.
 
 Uses reportlab (Platypus) for layout + matplotlib for the embedded chart,

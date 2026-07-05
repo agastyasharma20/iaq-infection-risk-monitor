@@ -19,7 +19,7 @@ from config_loader import load_config, resolve_path  # noqa: E402
 st.set_page_config(page_title="Reports", layout="wide")
 st.title("📄 Automated PDF Reports")
 st.caption("Generates a per-room summary: risk-level breakdown, trend chart, alert history, "
-           "and current model performance -- ready to hand to your HOD or facilities team.")
+           "and current model performance -- ready to share with a facilities or administrative team.")
 
 cfg = load_config()
 DATA_PATH = resolve_path(cfg["paths"]["data_dir"], cfg["paths"]["labeled_data_file"])

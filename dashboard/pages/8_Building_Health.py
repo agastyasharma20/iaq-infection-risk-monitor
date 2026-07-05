@@ -20,7 +20,7 @@ from building_health import compute_building_health  # noqa: E402
 
 st.set_page_config(page_title="Building Health", layout="wide")
 st.title("🏢 Building Health Score")
-st.caption("One number for the whole building -- what your HOD or a Smart City dashboard "
+st.caption("One number for the whole building -- what an administrator or a Smart City dashboard "
            "would want to see first, before drilling into any one room.")
 
 cfg = load_config()
