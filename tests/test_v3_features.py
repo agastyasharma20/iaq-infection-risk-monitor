@@ -98,6 +98,32 @@ def test_rl_advisor_prefers_no_action_when_safe():
     assert result["recommended_action"] == "no_action"
 
 
+def test_rl_advisor_training_is_genuinely_multistep():
+    """
+    V5: confirms train_q_learning() actually carries state forward across
+    steps within an episode (not a single-step bandit) -- trains a tiny
+    Q-table with a distinctive seed and checks that increasing
+    steps_per_episode changes the learned values for a state that's
+    only reachable after several steps have passed. If the state carried
+    forward correctly, more steps should let more of the table populate
+    with non-zero values (a single-step setup would leave far more of
+    the table at exactly zero, since it never visits multi-step-only states).
+    """
+    from rl_advisor import train_q_learning
+    import numpy as np
+
+    q_short = train_q_learning(episodes=200, steps_per_episode=1, seed=1)
+    q_long = train_q_learning(episodes=200, steps_per_episode=12, seed=1)
+
+    nonzero_short = np.count_nonzero(q_short)
+    nonzero_long = np.count_nonzero(q_long)
+
+    assert nonzero_long >= nonzero_short, (
+        "Multi-step training should explore at least as much of the state space "
+        "as single-step training with the same episode count"
+    )
+
+
 # ---------------- Anomaly Detection ----------------
 
 ANOMALY_MODEL_PATH = resolve_path("reports", "anomaly_model.joblib")

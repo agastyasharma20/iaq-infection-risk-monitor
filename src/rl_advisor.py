@@ -1,22 +1,32 @@
 """
-rl_advisor.py -- Reinforcement Learning Ventilation Advisor (V3)
---------------------------------------------------------------------
-Trains a simple tabular Q-learning agent, using the Digital Twin
-(digital_twin.py) as its training environment, to learn WHEN to
-recommend "open_windows" or "reduce_occupancy" vs "no_action" --
-balancing risk reduction against a simple energy/disruption cost
-(opening windows costs energy in winter; sending students out disrupts
-class). This is the "Reinforcement Learning" + "Multi-Objective Control"
-idea from your original brainstorm, implemented in the simplest form
-that is still genuinely a trained policy (not just hardcoded rules).
+rl_advisor.py -- Reinforcement Learning Ventilation Advisor (V3, upgraded in V5)
+--------------------------------------------------------------------------------
+Trains a tabular Q-learning agent, using the Digital Twin (digital_twin.py)
+as its training environment, to learn WHEN to recommend "open_windows" or
+"reduce_occupancy" vs "no_action" -- balancing risk reduction against a
+simple energy/disruption cost (opening windows costs energy in winter;
+sending students out disrupts class).
+
+V5 CHANGE (fixes a documented V4 limitation): V3/V4 trained this with a
+single-step ("bandit-style") setup -- each training episode was just one
+action evaluated 5 minutes ahead, with no continuation. That's a real
+simplification: it can't learn that "act now to avoid a worse state 30
+minutes from now" is sometimes better than the locally-best-looking action.
+
+V5 trains a genuine MULTI-STEP episodic MDP instead: each episode runs
+12 sequential 5-minute steps (a full simulated hour), the agent's chosen
+action changes the state it faces at the NEXT step (not just a one-off
+snapshot), and Q-values are updated via standard bootstrapped TD-learning
+across the whole trajectory. This lets the discount factor (gamma) do its
+actual job -- valuing an action for what it enables later, not just its
+immediate 5-minute effect.
 
 State space: discretized (co2_bin, occupancy_bin)
 Action space: no_action, open_windows, reduce_occupancy
-Reward: -risk_score_after_5min - action_cost
+Reward per step: -risk_score_after_5min - action_cost
 
-This is intentionally simple (tabular Q-learning, not deep RL) so it
-trains in seconds and is fully inspectable -- you can print the whole
-Q-table and explain every decision in a viva.
+Still intentionally tabular (not deep RL) so it trains in seconds and the
+whole Q-table can be printed and explained directly in a viva.
 """
 
 import sys
@@ -50,8 +60,14 @@ def discretize(co2_ppm: float, occupancy: int) -> tuple:
     return (co2_bin, occ_bin)
 
 
-def train_q_learning(episodes: int = 3000, alpha: float = 0.2, gamma: float = 0.9,
+def train_q_learning(episodes: int = 2000, steps_per_episode: int = 12,
+                      alpha: float = 0.2, gamma: float = 0.9,
                       epsilon: float = 0.3, seed: int = 42):
+    """
+    V5: genuine multi-step episodic training. Each of `episodes` episodes
+    runs `steps_per_episode` sequential 5-minute decisions (12 steps = a
+    full simulated hour), with the state carrying forward between steps.
+    """
     rng = random.Random(seed)
     n_co2_bins = len(CO2_BINS) - 1
     n_occ_bins = len(OCC_BINS) - 1
@@ -60,25 +76,31 @@ def train_q_learning(episodes: int = 3000, alpha: float = 0.2, gamma: float = 0.
     for ep in range(episodes):
         co2 = rng.uniform(420, 3200)
         occupancy = rng.randint(0, 60)
-        state = discretize(co2, occupancy)
 
-        # epsilon-greedy action choice
-        if rng.random() < epsilon:
-            action_idx = rng.randint(0, len(ACTIONS) - 1)
-        else:
-            action_idx = int(np.argmax(q_table[state[0], state[1], :]))
-        action = ACTIONS[action_idx]
+        for step in range(steps_per_episode):
+            state = discretize(co2, occupancy)
 
-        sim_df = simulate(co2, occupancy, action=action, minutes_ahead=5, step_minutes=5)
-        next_row = sim_df.iloc[-1]
-        reward = -next_row.risk_score - ACTION_COST[action]
+            # epsilon-greedy action choice
+            if rng.random() < epsilon:
+                action_idx = rng.randint(0, len(ACTIONS) - 1)
+            else:
+                action_idx = int(np.argmax(q_table[state[0], state[1], :]))
+            action = ACTIONS[action_idx]
 
-        next_state = discretize(next_row.co2_ppm, next_row.occupancy)
+            sim_df = simulate(co2, occupancy, action=action, minutes_ahead=5, step_minutes=5)
+            next_row = sim_df.iloc[-1]
+            reward = -next_row.risk_score - ACTION_COST[action]
 
-        best_next = np.max(q_table[next_state[0], next_state[1], :])
-        td_target = reward + gamma * best_next
-        td_error = td_target - q_table[state[0], state[1], action_idx]
-        q_table[state[0], state[1], action_idx] += alpha * td_error
+            # carry the resulting state forward to the NEXT step in this
+            # episode -- this is the key difference from the old single-step
+            # version, and what makes gamma (the discount factor) meaningful.
+            co2, occupancy = float(next_row.co2_ppm), int(next_row.occupancy)
+            next_state = discretize(co2, occupancy)
+
+            best_next = np.max(q_table[next_state[0], next_state[1], :])
+            td_target = reward + gamma * best_next
+            td_error = td_target - q_table[state[0], state[1], action_idx]
+            q_table[state[0], state[1], action_idx] += alpha * td_error
 
     return q_table
 
