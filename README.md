@@ -1,125 +1,139 @@
-# 🏫 Classroom Air Quality & Infection Risk Monitor — V3
+# 🏫 Classroom Air Quality & Infection Risk Monitor — V4
 
-Software-only, database-backed decision-support system built on top of a distributed
-sensor-based Fuzzy Decision Tree IAQ project. Converts existing CO₂ / temperature /
-humidity / occupancy sensor data into an actionable, explainable, forecastable,
-simulate-able, and controllable infection-risk system — no new hardware.
+**The USP in one sentence:** send one sensor reading in, get back a complete,
+explained, actioned, plain-English decision out — sensor trust check, risk level,
+root cause, what-if simulation of every possible action, the best action, and a
+one-sentence recommendation a non-technical teacher can act on immediately.
+
+Software-only. No new hardware, ever. Built on a distributed sensor-based Fuzzy
+Decision Tree IAQ project.
 
 ![CI](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/ci.yml/badge.svg)
 
-## What's new in V3 (vs V2)
+## What's new in V4 (vs V3)
 
-| Capability | V2 | V3 |
+| Capability | V3 | V4 |
 |---|---|---|
-| Data persistence | Flat CSV files | ✅ SQLite database (alerts, anomalies, model registry) |
-| **Digital Twin** | ❌ | ✅ Interactive what-if ventilation simulator (open windows / reduce occupancy / no action) |
-| **RL Ventilation Advisor** | ❌ | ✅ Trained Q-learning agent recommends an action per room state |
-| **Sensor anomaly detection** | ❌ | ✅ Hard bounds + Isolation Forest catch faulty/drifting sensors |
-| **Model versioning** | ❌ | ✅ Model registry tracks every trained version + auto-promotes the best ("champion") |
-| **API security** | Open | ✅ API key required (`X-API-Key` header) on all data endpoints |
-| **PDF reporting** | ❌ | ✅ One-click, professional per-room PDF report (charts, tables, alerts, model performance) |
-| **Dashboard structure** | Single page | ✅ Multi-page app: Home, Room Detail, Digital Twin, RL Advisor, Sensor Health, Alerts & Models, Reports |
-| **API endpoints** | `/predict`, `/health` | ✅ + `/simulate`, `/simulate/compare_all`, `/recommend`, `/alerts`, `/model_history` |
+| **Unified decision pipeline** | 5 separate tools | ✅ `orchestrator.py` -- one call runs everything and returns one decision |
+| **Plain-English advisory** | ❌ (raw numbers/labels only) | ✅ Template-based NLG -- one readable sentence, zero external AI cost |
+| **Building Health Score** | ❌ | ✅ One number + letter grade (A-F) for the whole building |
+| **Real notifications** | Log placeholder only | ✅ Real email support (safe dry-run default, graceful failure handling) |
+| **Continuous monitoring** | Manual, one room at a time | ✅ `monitor_loop.py` -- runs the full pipeline across all rooms on a timer |
+| **API** | Feature-specific endpoints | ✅ + `/analyze` (the one-call USP endpoint), `/building_health` |
+| **Dashboard** | 7 pages | ✅ 9 pages: + Autonomous Advisor, Building Health |
+
+## The core idea (in plain words)
+
+V1, V2, and V3 built five genuinely good tools: a risk classifier, a forecaster, an
+explainer, a what-if simulator, and an action recommender. But using them meant
+checking five different things and combining the answers yourself.
+
+**V4's orchestrator does that combining for you.** One sensor reading goes in; one
+paragraph of plain English comes out, already reasoned through every stage. That's
+the actual product now -- not "a set of AI models," but "a system that tells you what
+to do, in your own language, and can also do it continuously, unattended, for an
+entire building."
 
 ## Folder structure
 
 ```
 iaq_project/
-├── .github/workflows/ci.yml     # CI: trains everything + runs tests on every push
-├── api/
-│   └── main.py                   # FastAPI service (V3: +security +5 new endpoints)
+├── .github/workflows/ci.yml
+├── api/main.py                        # V4: + /analyze, /building_health
 ├── dashboard/
-│   ├── Home.py                   # Live risk grid overview
+│   ├── Home.py
 │   └── pages/
-│       ├── 1_Room_Detail.py       # Trend, 1-hr forecast, SHAP explanation
-│       ├── 2_Digital_Twin.py      # Interactive what-if simulator
-│       ├── 3_RL_Advisor.py        # Q-learning ventilation recommendation
-│       ├── 4_Sensor_Health.py     # Anomaly detection
-│       ├── 5_Alerts_and_Models.py # Alert history + model registry
-│       └── 6_Reports.py           # On-demand PDF report generation
-├── data/
-│   └── generate_sample_data.py   # Sample data generator (swap for real sensor CSV)
+│       ├── 1_Room_Detail.py
+│       ├── 2_Digital_Twin.py
+│       ├── 3_RL_Advisor.py
+│       ├── 4_Sensor_Health.py
+│       ├── 5_Alerts_and_Models.py
+│       ├── 6_Reports.py
+│       ├── 7_Autonomous_Advisor.py     # V4: the USP page
+│       └── 8_Building_Health.py        # V4
+├── data/generate_sample_data.py
 ├── src/
-│   ├── wells_riley.py             # Risk-scoring formula (V1 core, unchanged)
-│   ├── label_dataset.py           # Labels dataset with risk categories
-│   ├── fuzzy_model.py             # Hand-built fuzzy inference system
-│   ├── train_and_compare.py       # Trains + compares Fuzzy Tree vs Neural Network
-│   ├── forecast_model.py          # 1-hour-ahead risk forecasting (V2)
-│   ├── explainability.py          # SHAP explanations + root-cause diagnosis (V2)
-│   ├── alerts.py                  # Alert logging with cooldown (V3: DB-backed)
-│   ├── digital_twin.py            # V3: what-if ventilation simulator
-│   ├── rl_advisor.py              # V3: Q-learning ventilation advisor
-│   ├── anomaly_detection.py       # V3: sensor fault detection
-│   └── report_generator.py        # V3: automated PDF reports
-├── tests/                          # 21 automated tests across all modules
-├── reports/                        # Trained models, accuracy reports, plots, PDFs
-├── db.py                           # V3: SQLAlchemy database layer
-├── config.yaml                     # Centralized configuration
-├── config_loader.py                 # Config + path utilities
-├── logging_setup.py                  # Logging setup
-├── Dockerfile                        # API container
-├── dashboard.Dockerfile               # Dashboard container
-├── docker-compose.yml                 # Run both together
+│   ├── wells_riley.py                   # V1 core (unchanged)
+│   ├── label_dataset.py
+│   ├── fuzzy_model.py
+│   ├── train_and_compare.py
+│   ├── forecast_model.py                # V2
+│   ├── explainability.py                # V2
+│   ├── alerts.py                        # V3 (DB-backed) + V4 (real email)
+│   ├── digital_twin.py                  # V3
+│   ├── rl_advisor.py                    # V3
+│   ├── anomaly_detection.py             # V3
+│   ├── report_generator.py              # V3
+│   ├── nlg_advisory.py                  # V4: plain-English advisory
+│   ├── orchestrator.py                  # V4: THE USP -- unified pipeline
+│   ├── building_health.py               # V4: whole-building score
+│   └── monitor_loop.py                  # V4: continuous monitoring service
+├── tests/                                # 31 automated tests
+├── reports/
+├── db.py
+├── config.yaml
+├── config_loader.py
+├── logging_setup.py
+├── Dockerfile / dashboard.Dockerfile / docker-compose.yml
 ├── requirements.txt
 ├── LICENSE
-└── README.md   <- you are here
+└── README.md
 ```
 
-## How to run it (local, in order)
+## How to run it — step by step
 
 ```bash
-# 1. Install dependencies
+# 1. Install everything this project needs
 pip install -r requirements.txt
 
-# 2. Generate sample sensor data (skip once you have real data --
-#    just replace data/sensor_data.csv, same column format)
+# 2. Create the sample sensor data (replace with your real CSV later, same columns)
 python data/generate_sample_data.py
 
 # 3. Label every reading with a risk score/category
 python src/label_dataset.py
 
-# 4. Train and compare the two classification models (also registers them in the DB)
+# 4. Train the two risk-classification models (also registers them in the DB)
 python src/train_and_compare.py
 
-# 5. Train the forecasting model
+# 5. Train the 1-hour-ahead forecasting model
 python src/forecast_model.py
 
-# 6. Train the sensor anomaly detector
+# 6. Train the sensor-fault anomaly detector
 python src/anomaly_detection.py
 
 # 7. Train the RL ventilation advisor
 python src/rl_advisor.py
 
-# 8. Run the test suite (21 tests)
+# 8. Run all 31 tests -- confirms everything actually works
 pytest tests/ -v
 
-# 9. Launch the multi-page dashboard
+# 9. Try the new V4 centerpiece directly from the command line
+python src/orchestrator.py
+
+# 10. Launch the dashboard (9 pages, including Autonomous Advisor and Building Health)
 streamlit run dashboard/Home.py
 
-# 10. (Separately) launch the API
+# 11. (Separately) launch the API
 uvicorn api.main:app --reload
 # visit http://127.0.0.1:8000/docs -- include header: X-API-Key: changeme-iaq-v3-key
+# try POST /analyze -- that's the one-call USP endpoint
+
+# 12. (Optional) run the continuous monitoring loop for a few cycles
+python src/monitor_loop.py --interval 10 --iterations 3
 ```
 
-**Important:** change the `api_key` value in `config.yaml` before any real deployment --
-the default `changeme-iaq-v3-key` is a placeholder, not a secret.
+**Change the placeholder API key and email credentials in `config.yaml` before any
+real deployment** -- they are intentionally fake defaults, not secrets.
 
 ## Using YOUR real data instead of the sample data
-Replace `data/sensor_data.csv` with your real logged data, keeping these exact column names:
-`timestamp, room_id, co2_ppm, temperature_c, humidity_pct, occupancy, room_capacity`
+Replace `data/sensor_data.csv` with your real logged data (same columns:
+`timestamp, room_id, co2_ppm, temperature_c, humidity_pct, occupancy, room_capacity`),
+then re-run steps 3–9 above.
 
-Then re-run steps 3–9 above.
-
-## Running with Docker (when you're ready — not required now)
+## Docker (ready, not required to run now)
 ```bash
 docker-compose up --build
 ```
-Train the models locally first (steps 2–7 above) so `reports/*.joblib` exist before building.
-
-## Deploying later (not done yet, by design)
-- **Dashboard only:** Streamlit Community Cloud (free, connects directly to your GitHub repo)
-- **API only:** Render or Railway (free tier, deploys straight from a Dockerfile)
-- **Both together:** any VM/cloud instance running `docker-compose up`
 
 ## License
 MIT — see [LICENSE](LICENSE).

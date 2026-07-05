@@ -51,5 +51,8 @@ jobs:
       - name: Train RL advisor
         run: python src/rl_advisor.py
 
+      - name: Smoke-test the autonomous orchestrator
+        run: python src/orchestrator.py
+
       - name: Run tests
         run: pytest tests/ -v

@@ -36,6 +36,8 @@ from digital_twin import simulate, compare_all_actions, ACTIONS
 from rl_advisor import recommend_action
 from anomaly_detection import check_reading_for_anomaly
 from db import get_all_alerts, get_model_history
+from orchestrator import process_reading
+from building_health import compute_building_health
 
 logger = get_logger("api")
 cfg = load_config()
@@ -43,8 +45,8 @@ cfg = load_config()
 app = FastAPI(
     title="Classroom Air Quality & Infection Risk API",
     description="Software-only IAQ + infection risk prediction, forecasting, "
-                "simulation, and control-recommendation service (V3)",
-    version="3.0.0",
+                "simulation, and autonomous decision-support service (V4)",
+    version="4.0.0",
 )
 
 
@@ -81,11 +83,39 @@ class SimulateRequest(BaseModel):
     minutes_ahead: int = Field(60, example=60)
 
 
+class BuildingHealthRequest(BaseModel):
+    room_predictions: dict = Field(..., example={"Room_1": "Low", "Room_2": "High"})
+
+
 # ---------------- Endpoints ----------------
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "3.0.0"}
+    return {"status": "ok", "version": "4.0.0"}
+
+
+@app.post("/analyze", dependencies=[Depends(require_api_key)])
+def analyze_endpoint(reading: SensorReading):
+    """
+    THE V4 USP ENDPOINT: one call runs the full autonomous pipeline --
+    anomaly check, risk classification + explanation, Digital Twin
+    simulation, RL recommendation, plain-English advisory, and alerting
+    -- and returns everything in one response. This is what a real
+    integration (a facilities dashboard, a mobile app, a Smart City
+    system) would actually call, instead of orchestrating 5 separate
+    endpoints itself.
+    """
+    result = process_reading(
+        room_id=reading.room_id, co2_ppm=reading.co2_ppm,
+        temperature_c=reading.temperature_c, humidity_pct=reading.humidity_pct,
+        occupancy=reading.occupancy,
+    )
+    return result
+
+
+@app.post("/building_health", dependencies=[Depends(require_api_key)])
+def building_health_endpoint(req: BuildingHealthRequest):
+    return compute_building_health(req.room_predictions)
 
 
 @app.post("/predict", response_model=PredictionResponse, dependencies=[Depends(require_api_key)])

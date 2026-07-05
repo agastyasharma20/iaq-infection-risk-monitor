@@ -4,7 +4,7 @@ MODEL COMPARISON RESULTS
 Fuzzy Decision Tree
 Accuracy: 99.26%
 Training time: 0.010s
-Inference time: 0.0012 ms/sample
+Inference time: 0.0009 ms/sample
 
               precision    recall  f1-score   support
 
@@ -20,8 +20,8 @@ weighted avg       0.99      0.99      0.99      1080
 
 Neural Network
 Accuracy: 99.81%
-Training time: 1.235s
-Inference time: 0.0006 ms/sample
+Training time: 2.317s
+Inference time: 0.0010 ms/sample
 
               precision    recall  f1-score   support
 

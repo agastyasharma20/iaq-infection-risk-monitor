@@ -31,6 +31,15 @@ alerting:
   enabled: true
   trigger_category: "High"
   cooldown_minutes: 30   # don't re-alert the same room within this window
+  notification_channel: "log"   # options: "log" (safe default), "email"
+  dry_run: true                  # true = never actually sends, just logs what WOULD be sent
+  email:
+    smtp_host: "smtp.gmail.com"
+    smtp_port: 587
+    sender_address: "your-alert-account@gmail.com"
+    sender_password: "REPLACE_WITH_APP_PASSWORD"   # use an app password, never your real password
+    recipient_addresses:
+      - "facilities-team@example.com"
 
 forecasting:
   horizon_steps: 4        # predict 4 steps ahead (1 hr, given 15-min intervals)

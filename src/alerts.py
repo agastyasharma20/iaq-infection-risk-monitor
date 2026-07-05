@@ -21,11 +21,43 @@ logger = get_logger("alerts")
 
 def send_notification(room_id: str, risk_category: str, timestamp, root_cause: str = ""):
     """
-    Placeholder notification channel. Replace this with a real email/SMS
-    call for production use. Kept as a plain function so the rest of the
-    system doesn't need to change when you wire up a real channel.
+    Sends a real notification if configured to (channel="email", dry_run=false),
+    otherwise safely logs what WOULD be sent. Defaults to the safe logging
+    path so this never accidentally emails anyone until you deliberately
+    configure it in config.yaml.
     """
-    logger.warning(f"ALERT: {room_id} is at {risk_category} risk at {timestamp}. Cause: {root_cause}")
+    cfg = load_config()
+    alert_cfg = cfg["alerting"]
+    message = f"ALERT: {room_id} is at {risk_category} risk at {timestamp}. Cause: {root_cause}"
+
+    if alert_cfg["notification_channel"] != "email" or alert_cfg["dry_run"]:
+        logger.warning(f"[DRY RUN / LOG ONLY] {message}")
+        return
+
+    try:
+        _send_email(alert_cfg["email"], subject=f"IAQ Alert: {room_id} - {risk_category} Risk",
+                    body=message)
+        logger.warning(f"[EMAIL SENT] {message}")
+    except Exception as e:
+        # Never let a notification failure crash the pipeline -- log it
+        # and fall back to the safe logging path.
+        logger.error(f"Email notification failed ({e}). Falling back to log-only. {message}")
+
+
+def _send_email(email_cfg: dict, subject: str, body: str):
+    """Real SMTP send. Only called when channel='email' and dry_run=false."""
+    import smtplib
+    from email.mime.text import MIMEText
+
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = email_cfg["sender_address"]
+    msg["To"] = ", ".join(email_cfg["recipient_addresses"])
+
+    with smtplib.SMTP(email_cfg["smtp_host"], email_cfg["smtp_port"]) as server:
+        server.starttls()
+        server.login(email_cfg["sender_address"], email_cfg["sender_password"])
+        server.sendmail(email_cfg["sender_address"], email_cfg["recipient_addresses"], msg.as_string())
 
 
 def check_and_alert(room_id: str, risk_category: str, timestamp, root_cause: str = ""):
