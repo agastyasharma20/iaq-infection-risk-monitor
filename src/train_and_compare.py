@@ -17,6 +17,7 @@ and results are saved as a report + confusion matrix plots.
 """
 
 import os
+import sys
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -136,6 +137,16 @@ for ax, (name, r) in zip(axes, results.items()):
 plt.tight_layout()
 plt.savefig(os.path.join(REPORTS_DIR, "confusion_matrices.png"), dpi=150)
 print("\nSaved: reports/model_comparison.txt and reports/confusion_matrices.png")
+
+# ---------------- V3: Register both models in the DB-backed model registry ----------------
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from db import register_model  # noqa: E402
+
+for name, r in results.items():
+    promoted = register_model(model_name=name, accuracy=r["accuracy"],
+                               notes=f"Trained on {len(X_train)} samples")
+    print(f"Registered '{name}' in model registry (accuracy={r['accuracy']*100:.2f}%, "
+          f"promoted_to_champion={promoted})")
 
 # Save the trained tree model + scaler + NN for use in the dashboard
 import joblib

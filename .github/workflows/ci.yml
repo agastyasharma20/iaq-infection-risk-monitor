@@ -45,5 +45,11 @@ jobs:
       - name: Train forecast model
         run: python src/forecast_model.py
 
+      - name: Train anomaly detector
+        run: python src/anomaly_detection.py
+
+      - name: Train RL advisor
+        run: python src/rl_advisor.py
+
       - name: Run tests
         run: pytest tests/ -v

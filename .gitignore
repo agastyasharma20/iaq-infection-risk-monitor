@@ -13,7 +13,9 @@ env/
 data/sensor_data.csv
 data/labeled_data.csv
 data/alerts_log.csv
+data/iaq.db
 reports/*.joblib
+reports/*_weekly_report.pdf
 logs/
 
 # OS/editor junk

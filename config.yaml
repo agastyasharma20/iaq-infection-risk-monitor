@@ -39,6 +39,7 @@ forecasting:
 api:
   host: "0.0.0.0"
   port: 8000
+  api_key: "changeme-iaq-v3-key"   # replace this before any real deployment
 
 model:
   test_size: 0.25
