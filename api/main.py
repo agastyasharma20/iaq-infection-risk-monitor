@@ -35,9 +35,10 @@ from alerts import check_and_alert
 from digital_twin import simulate, compare_all_actions, ACTIONS
 from rl_advisor import recommend_action
 from anomaly_detection import check_reading_for_anomaly
-from db import get_all_alerts, get_model_history
+from db import get_all_alerts, get_model_history, get_building_health_history
 from orchestrator import process_reading
 from building_health import compute_building_health
+from graph_propagation import propagate_risk, find_escalation_risks
 
 logger = get_logger("api")
 cfg = load_config()
@@ -94,6 +95,29 @@ def health():
     return {"status": "ok", "version": "4.0.0"}
 
 
+@app.get("/public/status")
+def public_status():
+    """
+    Deliberately NOT behind the API key -- this is the one endpoint meant
+    to be shown to external stakeholders (a public Smart City dashboard,
+    a status page linked from a college website) without exposing any
+    sensitive room-level detail, alert history, or model internals.
+    Returns only the single aggregate Building Health Score.
+    """
+    history = get_building_health_history(limit=1)
+    if not history:
+        return {"status": "no_data", "message": "No building health data logged yet."}
+
+    latest = history[-1]
+    return {
+        "building_health_score": latest.score,
+        "grade": latest.grade,
+        "rooms_needing_attention": latest.rooms_at_risk,
+        "total_rooms": latest.total_rooms,
+        "last_updated": latest.timestamp.isoformat(),
+    }
+
+
 @app.post("/analyze", dependencies=[Depends(require_api_key)])
 def analyze_endpoint(reading: SensorReading):
     """
@@ -116,6 +140,19 @@ def analyze_endpoint(reading: SensorReading):
 @app.post("/building_health", dependencies=[Depends(require_api_key)])
 def building_health_endpoint(req: BuildingHealthRequest):
     return compute_building_health(req.room_predictions)
+
+
+@app.post("/building_graph", dependencies=[Depends(require_api_key)])
+def building_graph_endpoint(req: BuildingHealthRequest):
+    """
+    Cross-room risk propagation (V5): given each room's independently
+    predicted risk, returns each room's neighbor-adjusted risk plus a
+    list of rooms whose risk is escalated by a risky neighbor -- signal
+    a per-room-only model can't see.
+    """
+    result = propagate_risk(req.room_predictions)
+    escalations = find_escalation_risks(result)
+    return {"per_room": result, "escalations": escalations}
 
 
 @app.post("/predict", response_model=PredictionResponse, dependencies=[Depends(require_api_key)])

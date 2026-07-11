@@ -51,6 +51,9 @@ jobs:
       - name: Train RL advisor
         run: python src/rl_advisor.py
 
+      - name: Backfill building health history
+        run: python src/backfill_health_history.py
+
       - name: Smoke-test the autonomous orchestrator
         run: python src/orchestrator.py
 

@@ -24,6 +24,7 @@ import sys
 import time
 import argparse
 import pandas as pd
+from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -32,6 +33,7 @@ from config_loader import load_config, resolve_path
 from logging_setup import get_logger
 from orchestrator import process_reading
 from building_health import compute_building_health
+from db import log_building_health
 
 logger = get_logger("monitor_loop")
 
@@ -59,6 +61,10 @@ def run_monitoring_cycle(df: pd.DataFrame) -> dict:
             logger.warning(f"Cycle alert: {result['advisory']}")
 
     health = compute_building_health(room_predictions)
+    log_building_health(
+        timestamp=datetime.now(), score=health["score"], grade=health["grade"],
+        rooms_at_risk=health["rooms_at_risk"], total_rooms=health["total_rooms"],
+    )
     logger.info(f"Cycle complete. Building Health Score: {health['score']}/100 "
                 f"(Grade {health['grade']}), {health['rooms_at_risk']}/{health['total_rooms']} rooms need attention")
     return health

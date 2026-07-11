@@ -55,6 +55,16 @@ class SensorAnomaly(Base):
     reason = Column(String, default="")
 
 
+class BuildingHealthLog(Base):
+    __tablename__ = "building_health_log"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, nullable=False)
+    score = Column(Float, nullable=False)
+    grade = Column(String, nullable=False)
+    rooms_at_risk = Column(Integer, nullable=False)
+    total_rooms = Column(Integer, nullable=False)
+
+
 def get_engine():
     cfg = load_config()
     db_path = resolve_path(cfg["paths"]["data_dir"], "iaq.db")
@@ -154,6 +164,29 @@ def get_all_anomalies():
     session = get_session()
     try:
         return session.query(SensorAnomaly).order_by(SensorAnomaly.timestamp.desc()).all()
+    finally:
+        session.close()
+
+
+def log_building_health(timestamp: datetime, score: float, grade: str,
+                          rooms_at_risk: int, total_rooms: int):
+    session = get_session()
+    try:
+        session.add(BuildingHealthLog(
+            timestamp=timestamp, score=score, grade=grade,
+            rooms_at_risk=rooms_at_risk, total_rooms=total_rooms,
+        ))
+        session.commit()
+    finally:
+        session.close()
+
+
+def get_building_health_history(limit: int = 500):
+    session = get_session()
+    try:
+        return (session.query(BuildingHealthLog)
+                .order_by(BuildingHealthLog.timestamp.asc())
+                .limit(limit).all())
     finally:
         session.close()
 
