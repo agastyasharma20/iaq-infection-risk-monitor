@@ -1,20 +1,24 @@
 """
-main.py -- FastAPI service (V3)
+main.py -- FastAPI service (V6)
 ---------------------------------
-V3 additions on top of V2's /predict and /health:
-  - API key authentication (all endpoints except /health require it)
-  - /simulate     : Digital Twin what-if simulation
-  - /recommend    : RL ventilation advisor recommendation
-  - /check_anomaly: sensor anomaly detection
-  - /alerts       : recent alert history (from the database)
-  - /model_history: model registry / versioning history
+V6 auth upgrade: real per-user API keys with roles (admin / viewer),
+replacing V3-V5's single shared key. Configure users in config.yaml's
+api.users list. The old single `api.api_key` value still works and is
+treated as an admin key for backward compatibility with earlier
+integrations, but new deployments should use api.users instead.
+
+  - admin  : can call every endpoint, including ones with side effects
+             (e.g. /predict and /analyze write alerts to the database)
+  - viewer : can only call read-only endpoints (no state changes) --
+             /alerts, /model_history, /building_health, /building_graph,
+             /recommend, /simulate. Cannot call /predict or /analyze.
 
 RUN LOCALLY WITH:
     uvicorn api.main:app --reload
 
 Then visit http://127.0.0.1:8000/docs for interactive Swagger docs.
-Include header `X-API-Key: <your key from config.yaml>` on every request
-except /health.
+Include header `X-API-Key: <a key from config.yaml api.users>` on every
+request except /health and /public/status.
 """
 
 import os
@@ -46,26 +50,57 @@ cfg = load_config()
 app = FastAPI(
     title="Classroom Air Quality & Infection Risk API",
     description="Software-only IAQ + infection risk prediction, forecasting, "
-                "simulation, and autonomous decision-support service (V4)",
-    version="4.0.0",
+                "simulation, and autonomous decision-support service (V6)",
+    version="6.0.0",
 )
 
+ROLE_RANK = {"viewer": 0, "admin": 1}
 
-def require_api_key(x_api_key: Optional[str] = Header(None)):
-    expected = cfg["api"]["api_key"]
-    if x_api_key != expected:
-        raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key header")
-    return True
+
+def _lookup_user(api_key: Optional[str]) -> Optional[dict]:
+    if not api_key:
+        return None
+    for user in cfg["api"].get("users", []):
+        if user["key"] == api_key:
+            return user
+    # Backward compatibility: the old single shared key still works,
+    # treated as admin, so earlier integrations don't break on upgrade.
+    if api_key == cfg["api"].get("api_key"):
+        return {"name": "legacy_admin_key", "role": "admin"}
+    return None
+
+
+def require_role(minimum_role: str = "viewer"):
+    """
+    Returns a FastAPI dependency that requires the caller's API key to
+    resolve to a user with at least `minimum_role` (viewer < admin).
+    """
+    def _dependency(x_api_key: Optional[str] = Header(None)):
+        user = _lookup_user(x_api_key)
+        if user is None:
+            raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key header")
+        if ROLE_RANK.get(user["role"], -1) < ROLE_RANK.get(minimum_role, 999):
+            raise HTTPException(
+                status_code=403,
+                detail=f"This endpoint requires role '{minimum_role}' or higher; "
+                       f"your key has role '{user['role']}'.",
+            )
+        return user
+    return _dependency
+
+
+require_viewer = require_role("viewer")   # any valid key -- viewer or admin
+require_admin = require_role("admin")     # admin keys only
 
 
 # ---------------- Schemas ----------------
 
 class SensorReading(BaseModel):
-    room_id: str = Field(..., example="Room_1")
-    co2_ppm: float = Field(..., example=2500)
-    temperature_c: float = Field(..., example=26.5)
-    humidity_pct: float = Field(..., example=55.0)
-    occupancy: int = Field(..., example=45)
+    room_id: str = Field(..., json_schema_extra={"example": "Room_1"})
+    co2_ppm: float = Field(..., json_schema_extra={"example": 2500})
+    temperature_c: float = Field(..., json_schema_extra={"example": 26.5})
+    humidity_pct: float = Field(..., json_schema_extra={"example": 55.0})
+    occupancy: int = Field(..., json_schema_extra={"example": 45})
 
 
 class PredictionResponse(BaseModel):
@@ -78,21 +113,21 @@ class PredictionResponse(BaseModel):
 
 
 class SimulateRequest(BaseModel):
-    co2_ppm: float = Field(..., example=2800)
-    occupancy: int = Field(..., example=50)
-    action: str = Field(..., example="open_windows", description=f"One of {ACTIONS}")
-    minutes_ahead: int = Field(60, example=60)
+    co2_ppm: float = Field(..., json_schema_extra={"example": 2800})
+    occupancy: int = Field(..., json_schema_extra={"example": 50})
+    action: str = Field(..., json_schema_extra={"example": "open_windows"}, description=f"One of {ACTIONS}")
+    minutes_ahead: int = Field(60, json_schema_extra={"example": 60})
 
 
 class BuildingHealthRequest(BaseModel):
-    room_predictions: dict = Field(..., example={"Room_1": "Low", "Room_2": "High"})
+    room_predictions: dict = Field(..., json_schema_extra={"example": {"Room_1": "Low", "Room_2": "High"}})
 
 
 # ---------------- Endpoints ----------------
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "4.0.0"}
+    return {"status": "ok", "version": "6.0.0"}
 
 
 @app.get("/public/status")
@@ -118,7 +153,7 @@ def public_status():
     }
 
 
-@app.post("/analyze", dependencies=[Depends(require_api_key)])
+@app.post("/analyze", dependencies=[Depends(require_admin)])
 def analyze_endpoint(reading: SensorReading):
     """
     THE V4 USP ENDPOINT: one call runs the full autonomous pipeline --
@@ -137,12 +172,12 @@ def analyze_endpoint(reading: SensorReading):
     return result
 
 
-@app.post("/building_health", dependencies=[Depends(require_api_key)])
+@app.post("/building_health", dependencies=[Depends(require_viewer)])
 def building_health_endpoint(req: BuildingHealthRequest):
     return compute_building_health(req.room_predictions)
 
 
-@app.post("/building_graph", dependencies=[Depends(require_api_key)])
+@app.post("/building_graph", dependencies=[Depends(require_viewer)])
 def building_graph_endpoint(req: BuildingHealthRequest):
     """
     Cross-room risk propagation (V5): given each room's independently
@@ -155,7 +190,7 @@ def building_graph_endpoint(req: BuildingHealthRequest):
     return {"per_room": result, "escalations": escalations}
 
 
-@app.post("/predict", response_model=PredictionResponse, dependencies=[Depends(require_api_key)])
+@app.post("/predict", response_model=PredictionResponse, dependencies=[Depends(require_admin)])
 def predict(reading: SensorReading):
     try:
         result = explain_reading(
@@ -185,7 +220,7 @@ def predict(reading: SensorReading):
     )
 
 
-@app.post("/simulate", dependencies=[Depends(require_api_key)])
+@app.post("/simulate", dependencies=[Depends(require_viewer)])
 def simulate_endpoint(req: SimulateRequest):
     try:
         df = simulate(req.co2_ppm, req.occupancy, action=req.action, minutes_ahead=req.minutes_ahead)
@@ -194,13 +229,13 @@ def simulate_endpoint(req: SimulateRequest):
     return df.to_dict(orient="records")
 
 
-@app.post("/simulate/compare_all", dependencies=[Depends(require_api_key)])
+@app.post("/simulate/compare_all", dependencies=[Depends(require_viewer)])
 def simulate_compare_endpoint(co2_ppm: float, occupancy: int, minutes_ahead: int = 60):
     results = compare_all_actions(co2_ppm, occupancy, minutes_ahead)
     return {action: df.to_dict(orient="records") for action, df in results.items()}
 
 
-@app.get("/recommend", dependencies=[Depends(require_api_key)])
+@app.get("/recommend", dependencies=[Depends(require_viewer)])
 def recommend_endpoint(co2_ppm: float, occupancy: int):
     try:
         return recommend_action(co2_ppm, occupancy)
@@ -208,7 +243,7 @@ def recommend_endpoint(co2_ppm: float, occupancy: int):
         raise HTTPException(status_code=503, detail="RL advisor not trained yet. Run src/rl_advisor.py first.")
 
 
-@app.get("/alerts", dependencies=[Depends(require_api_key)])
+@app.get("/alerts", dependencies=[Depends(require_viewer)])
 def alerts_endpoint(limit: int = 50):
     alerts = get_all_alerts()[:limit]
     return [
@@ -218,7 +253,7 @@ def alerts_endpoint(limit: int = 50):
     ]
 
 
-@app.get("/model_history", dependencies=[Depends(require_api_key)])
+@app.get("/model_history", dependencies=[Depends(require_viewer)])
 def model_history_endpoint(model_name: Optional[str] = None):
     history = get_model_history(model_name)
     return [

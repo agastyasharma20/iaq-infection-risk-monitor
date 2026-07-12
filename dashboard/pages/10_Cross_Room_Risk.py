@@ -26,9 +26,8 @@ st.title("🕸️ Cross-Room Risk Propagation")
 st.caption("Each room's risk is normally predicted independently. This page adds a "
            "lightweight graph model -- rooms sharing a wall/corridor/HVAC duct can "
            "pull each other's risk up, and this surfaces that effect. "
-           "**Note:** the room layout below is a placeholder 3x3 grid guess -- replace "
-           "`ROOM_ADJACENCY`/`build_building_graph()` in `src/graph_propagation.py` with "
-           "your real floor plan before trusting this for a real building.")
+           "Room adjacency is read from `config.yaml` (`building_layout.adjacency`) -- "
+           "edit that list to match your real floor plan.")
 
 cfg = load_config()
 MODEL_PATH = resolve_path(cfg["paths"]["reports_dir"], "fuzzy_tree_model.joblib")

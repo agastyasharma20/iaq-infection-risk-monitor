@@ -45,10 +45,41 @@ forecasting:
   horizon_steps: 4        # predict 4 steps ahead (1 hr, given 15-min intervals)
   lag_steps: 4             # use last 4 readings as features
 
+building_layout:
+  # V6: Real room adjacency, replacing the V5 placeholder 3x3 grid guess.
+  # List every pair of rooms that share a wall, corridor, or HVAC duct.
+  # This directly drives the cross-room risk propagation model
+  # (src/graph_propagation.py) -- edit this to match your real floor plan.
+  # Format: each entry is [room_a, room_b].
+  adjacency:
+    - [Room_1, Room_2]
+    - [Room_2, Room_3]
+    - [Room_1, Room_4]
+    - [Room_2, Room_5]
+    - [Room_3, Room_6]
+    - [Room_4, Room_5]
+    - [Room_5, Room_6]
+    - [Room_4, Room_7]
+    - [Room_5, Room_8]
+    - [Room_6, Room_9]
+    - [Room_7, Room_8]
+    - [Room_8, Room_9]
+
 api:
   host: "0.0.0.0"
   port: 8000
-  api_key: "changeme-iaq-v3-key"   # replace this before any real deployment
+  api_key: "changeme-iaq-v3-key"   # V6: kept for backward compatibility -- see api_users below
+  users:
+    # V6: real per-user API keys with roles, replacing the single shared key.
+    # role "admin" can call every endpoint. role "viewer" can only call
+    # read-only endpoints (predictions, alerts, history) -- not training,
+    # not config-affecting actions.
+    - name: "admin"
+      key: "admin-changeme-key-please-replace"
+      role: "admin"
+    - name: "viewer"
+      key: "viewer-changeme-key-please-replace"
+      role: "viewer"
 
 model:
   test_size: 0.25

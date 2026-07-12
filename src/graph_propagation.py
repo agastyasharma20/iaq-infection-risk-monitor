@@ -29,6 +29,7 @@ import numpy as np
 import networkx as nx
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config_loader import load_config
 
 RISK_SCORE_MAP = {"Low": 0.1, "Medium": 0.45, "High": 0.8}
 SCORE_TO_CATEGORY_BOUNDARIES = [(0.20, "Low"), (0.45, "Medium")]
@@ -41,18 +42,43 @@ def _score_to_category(score: float) -> str:
     return "High"
 
 
-def build_building_graph(room_ids: list, layout: str = "grid_3x3") -> nx.Graph:
+def build_building_graph(room_ids: list, layout: str = "config") -> nx.Graph:
     """
-    Builds a graph of room adjacency. Default is a 3x3 grid layout (a
-    reasonable guess for 9 classrooms on one floor) -- replace with your
-    real floor plan's adjacency list for accurate results.
+    Builds a graph of room adjacency.
+
+    layout="config" (default, V6): reads the real adjacency list from
+    config.yaml's building_layout.adjacency -- edit that file to match
+    your actual floor plan. This replaces V5's hardcoded 3x3 grid guess.
+
+    layout="grid_3x3": falls back to the old placeholder grid guess,
+    kept only for quick demos/tests where no config is available.
     """
     G = nx.Graph()
     G.add_nodes_from(room_ids)
 
+    if layout == "config":
+        cfg = load_config()
+        adjacency_pairs = cfg.get("building_layout", {}).get("adjacency", [])
+        room_id_set = set(room_ids)
+        edges_added = 0
+        for pair in adjacency_pairs:
+            if len(pair) != 2:
+                continue
+            a, b = pair
+            if a in room_id_set and b in room_id_set:
+                G.add_edge(a, b)
+                edges_added += 1
+        if edges_added == 0:
+            # Config had no usable entries for these rooms -- fall back
+            # to the grid guess rather than returning a graph with no
+            # edges at all (which would make propagation a no-op).
+            return build_building_graph(room_ids, layout="grid_3x3")
+        return G
+
     if layout == "grid_3x3" and len(room_ids) == 9:
-        # Arrange as a 3x3 grid, connect horizontal/vertical neighbors
-        # (not diagonals -- diagonal rooms don't usually share a wall/duct)
+        # Placeholder guess: arrange as a 3x3 grid, connect horizontal/
+        # vertical neighbors only (not diagonals). Use layout="config"
+        # with a real adjacency list instead whenever possible.
         grid = np.array(room_ids).reshape(3, 3)
         for r in range(3):
             for c in range(3):
@@ -61,8 +87,8 @@ def build_building_graph(room_ids: list, layout: str = "grid_3x3") -> nx.Graph:
                 if r + 1 < 3:
                     G.add_edge(grid[r, c], grid[r + 1, c])
     else:
-        # Fallback: connect each room to its immediate neighbors in the
-        # given list order (a simple corridor-style layout)
+        # Last-resort fallback: connect each room to its immediate
+        # neighbor in list order (a simple corridor-style layout)
         for i in range(len(room_ids) - 1):
             G.add_edge(room_ids[i], room_ids[i + 1])
 
