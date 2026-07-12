@@ -16,6 +16,7 @@ data/alerts_log.csv
 data/iaq.db
 reports/*.joblib
 reports/*_weekly_report.pdf
+reports/_chart_assets/
 logs/
 
 # OS/editor junk
