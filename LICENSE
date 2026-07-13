@@ -1,21 +1,50 @@
-MIT License
+PROPRIETARY LICENSE — ALL RIGHTS RESERVED
 
-Copyright (c) 2026 Agastya Sharma
+Copyright (c) 2026 Agastya Sharma. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This software, including all source code, documentation, configuration files,
+trained models, generated reports, and associated materials in this repository
+(collectively, the "Software"), is the exclusive property of Agastya Sharma
+("the Owner").
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+NO PERMISSION IS GRANTED to any person to use, copy, modify, merge, publish,
+distribute, sublicense, sell, deploy, or otherwise exploit the Software, in
+whole or in part, for any purpose, without the prior express written consent
+of the Owner.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Specifically, and without limitation, the following are strictly prohibited
+without prior written authorization from the Owner:
+
+  1. Copying or redistributing the Software or any portion of it, in source
+     or compiled form.
+  2. Modifying, adapting, or creating derivative works based on the Software.
+  3. Using the Software, or any concept, method, or component it implements,
+     in any academic submission, research publication, patent application,
+     commercial product, or deployed system.
+  4. Publicly or privately hosting, mirroring, or redistributing this
+     repository or its contents.
+  5. Removing or altering this notice from any copy of the Software.
+
+PERMITTED USE: Viewing the source code on the Owner's public repository page
+for personal, non-commercial evaluation purposes only, without downloading,
+cloning, forking, copying, or reusing any part of it, is permitted. All other
+use requires prior written permission from the Owner.
+
+LEGAL ACTION: Any use of the Software in violation of this license constitutes
+copyright infringement and a breach of these terms. The Owner reserves the
+right to pursue the full extent of legal remedies available under applicable
+copyright, intellectual property, and contract law — including but not limited
+to injunctive relief, monetary damages, and recovery of legal costs — against
+any individual or organization found to be in violation of this license.
+
+DISCLAIMER OF WARRANTY: THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO
+EVENT SHALL THE OWNER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY
+ARISING FROM THE SOFTWARE OR ITS USE.
+
+To request permission for any use of this Software, contact:
+work.agastya20@gmail.com
+
+This notice must be retained, unmodified, in all copies of the Software that
+the Owner does authorize.
