@@ -115,5 +115,8 @@ then run `python run_pipeline.py --skip-data --with-tests`.
 docker-compose up --build
 ```
 
+
 ## License
-MIT — see [LICENSE](LICENSE).
+**Proprietary — All Rights Reserved.** This code may not be copied, reused,
+redistributed, or used in any form without prior written permission from the
+author. See [LICENSE](LICENSE). Unauthorized use may result in legal action.
